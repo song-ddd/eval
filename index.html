@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>评测任务 · 定时评测 Demo</title>
+<style>
+  :root{
+    --primary:#4f46e5; --primary-hover:#4338ca; --primary-light:#eef2ff;
+    --border:#eceef2; --text:#1f2329; --text-2:#646a73; --text-3:#8f959e;
+    --bg:#f7f8fa; --green-bg:#e7f7ee; --green:#18a058;
+    --orange-bg:#fff3e0; --orange:#e8862b; --gray-bg:#f2f3f5; --gray:#8f959e;
+    --blue:#4f46e5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);background:var(--bg);font-size:14px}
+  a{color:inherit;text-decoration:none}
+
+  /* top nav */
+  .topbar{height:56px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:28px}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700}
+  .logo small{display:block;font-size:11px;color:var(--text-3);font-weight:400}
+  .topnav{display:flex;gap:22px;color:var(--text-2)}
+  .topnav .item{display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 2px}
+  .topnav .item.active{color:var(--text);font-weight:600}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--text-2)}
+  .space-switch{border:1px solid var(--border);border-radius:8px;padding:6px 12px;display:flex;gap:6px;align-items:center;cursor:pointer}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#ffb199,#ff6b9d)}
+
+  /* layout */
+  .layout{display:flex;height:calc(100vh - 56px)}
+  .sidebar{width:200px;background:#fff;border-right:1px solid var(--border);padding:16px 10px;flex-shrink:0}
+  .side-title{display:flex;align-items:center;gap:8px;font-weight:700;padding:6px 10px;margin-bottom:8px}
+  .menu .mi{padding:9px 12px;border-radius:8px;color:var(--text-2);cursor:pointer;display:flex;align-items:center;gap:8px;margin:2px 0}
+  .menu .mi:hover{background:var(--bg)}
+  .menu .mi.parent{color:var(--text);font-weight:600}
+  .menu .sub .mi{padding-left:34px;font-size:13px}
+  .menu .mi.active{background:var(--primary-light);color:var(--primary);font-weight:600}
+
+  .content{flex:1;overflow:auto;padding:22px 26px}
+  .page-title{font-size:20px;font-weight:700}
+  .page-sub{color:var(--text-3);margin-top:4px;font-size:13px}
+
+  /* card */
+  .card{background:#fff;border-radius:12px;margin-top:16px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .search{flex:0 0 320px;display:flex;align-items:center;border:1px solid var(--border);border-radius:8px;padding:0 4px 0 12px;height:36px}
+  .search input{border:0;outline:0;flex:1;height:100%;background:transparent}
+  .search .ico{width:32px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--bg);border-radius:6px;color:var(--text-3);cursor:pointer}
+  .btn{height:36px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:var(--text-2);font-size:14px}
+  .btn:hover{border-color:var(--primary);color:var(--primary)}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btn.primary:hover{background:var(--primary-hover)}
+  .spacer{flex:1}
+
+  /* table */
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th{text-align:left;font-weight:600;color:var(--text-2);font-size:13px;padding:12px 10px;border-bottom:1px solid var(--border)}
+  td{padding:16px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  .link{color:var(--blue);cursor:pointer}
+  .tag{display:inline-block;padding:2px 10px;border-radius:6px;font-size:12px}
+  .tag.done{background:var(--green-bg);color:var(--green)}
+  .tag.wait{background:var(--orange-bg);color:var(--orange)}
+  .tag.run{background:var(--primary-light);color:var(--primary)}
+  .tag.on{background:var(--green-bg);color:var(--green)}
+  .tag.off{background:var(--gray-bg);color:var(--gray)}
+  .tag.fail{background:#fdecec;color:#e54545}
+  .muted{color:var(--text-3)}
+  .cron{font-family:monospace;color:var(--text-3);font-size:12px}
+  .op{color:var(--blue);cursor:pointer;margin-right:12px}
+  .op.danger{color:#e54545}
+  .op:last-child{margin-right:0}
+  .num-badge{display:inline-block;min-width:34px;text-align:center;padding:2px 10px;border-radius:6px;background:#eef1fe;color:#5b5be0;font-size:13px;font-weight:500}
+  .score-good{color:var(--green);font-weight:400;font-size:14px}
+  .score-bad{display:inline-block;padding:2px 10px;border-radius:6px;background:#fdecec;color:#e54545;font-weight:400;font-size:13px}
+  .total-count{color:var(--text-3);font-size:13px;margin-right:8px}
+
+  /* pagination */
+  .pager{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:16px}
+  .pg{min-width:32px;height:32px;border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0 8px}
+  .pg.active{border-color:var(--primary);color:var(--primary)}
+
+  .hidden{display:none !important}
+
+  /* toggle switch */
+  .toggle{display:inline-block;width:40px;height:22px;border-radius:20px;background:var(--gray-bg);position:relative;cursor:pointer;transition:background .2s;vertical-align:middle}
+  .toggle::after{content:"";position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .toggle.on{background:var(--primary)}
+  .toggle.on::after{left:20px}
+
+  /* modal */
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal{background:#fff;border-radius:12px;width:540px;max-height:86vh;overflow:auto}
+  .modal-h{padding:18px 22px;border-bottom:1px solid var(--border);font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+  .modal-h .x{cursor:pointer;color:var(--text-3);display:flex}
+  .modal-b{padding:20px 22px}
+  .modal-f{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+  .field{margin-bottom:18px}
+  .field label{display:block;margin-bottom:7px;font-weight:600;font-size:13px}
+  .field .req{color:#e54545}
+  .ctrl{width:100%;height:38px;border:1px solid var(--border);border-radius:8px;padding:0 12px;outline:0;font-size:14px}
+  .ctrl:focus{border-color:var(--primary)}
+  select.ctrl{background:#fff}
+  textarea.ctrl{height:80px;padding:10px 12px;resize:vertical;font-family:inherit}
+  .row{display:flex;gap:12px}
+  .row>*{flex:1}
+  .section-title{font-weight:700;font-size:13px;color:var(--primary);margin:6px 0 14px;padding-top:6px;border-top:1px dashed var(--border)}
+  .hint{font-size:12px;color:var(--text-3);margin-top:6px}
+  .cron-preview{background:var(--primary-light);color:var(--primary);border-radius:8px;padding:8px 12px;font-size:13px;margin-top:8px}
+  .info-banner{background:var(--primary-light);border:1px solid #c7d2fe;color:var(--text-2);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6;display:flex;align-items:flex-start;gap:8px;margin-bottom:18px}
+  .info-banner svg{stroke:var(--primary);flex-shrink:0;width:16px;height:16px;margin-top:2px}
+
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--text-2);cursor:pointer;margin-bottom:6px}
+  .back:hover{color:var(--primary)}
+
+  .ic{width:16px;height:16px;flex-shrink:0}
+  .logo .mark .ic{width:24px;height:24px}
+  svg{stroke-width:1.7}
+
+  /* ============ 对话（chat）模块 ============ */
+  .chat-layout{display:flex;height:calc(100vh - 56px)}
+
+  /* 左：会话列表 */
+  .chat-list{width:252px;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+  .cl-top{padding:12px 12px 8px;display:flex;gap:8px;align-items:center}
+  .new-chat{flex:1;height:38px;background:var(--primary);color:#fff;border:0;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:14px;font-weight:500}
+  .new-chat:hover{background:var(--primary-hover)}
+  .cl-iconbtn{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-2);cursor:pointer;flex-shrink:0}
+  .cl-iconbtn:hover{color:var(--primary);border-color:var(--primary)}
+  .cl-search{margin:2px 12px 10px;display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:8px;padding:0 10px;height:34px;color:var(--text-3)}
+  .cl-search input{border:0;outline:0;flex:1;height:100%;background:transparent;font-size:13px}
+  .cl-group{display:flex;align-items:center;justify-content:space-between;padding:4px 14px 6px;color:var(--text);font-weight:600;font-size:13px}
+  .cl-group .plus{color:var(--text-3);cursor:pointer;display:flex}
+  .cl-recent{padding:2px 14px 4px;color:var(--text-3);font-size:12px}
+  .cl-items{flex:1;overflow:auto;padding:0 8px 12px}
+  .ci{padding:9px 10px;border-radius:9px;cursor:pointer;margin:3px 0;border:1px solid transparent}
+  .ci:hover{background:var(--bg)}
+  .ci.active{background:var(--primary-light);border-color:#c7d2fe}
+  .ci.cur{background:#f5f7ff;border-color:var(--primary)}
+  .ci .t{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ci .m{display:flex;align-items:center;gap:5px;color:var(--text-3);font-size:11px;margin-top:6px}
+
+  /* 中：对话主区 */
+  .chat-main{flex:1;display:flex;flex-direction:column;background:#fff;min-width:0}
+  .cm-head{padding:14px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+  .cm-title{font-size:16px;font-weight:600;color:var(--text)}
+  .cm-head .edit{color:var(--text-3);cursor:pointer;display:flex}
+  .cm-head .rgt{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--text-3)}
+  .cm-head .rgt svg{cursor:pointer}
+  .credit-badge{background:var(--primary-light);color:var(--primary);border-radius:20px;padding:4px 12px;font-size:12px;white-space:nowrap}
+  .cm-body{flex:1;overflow:auto;padding:22px 30px}
+
+  .msg{margin-bottom:26px;position:relative}
+  .cm-body.selecting .msg{padding-left:30px}
+  .msg .who{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+  .uava{width:30px;height:30px;border-radius:6px;background:var(--gray-bg);display:flex;align-items:center;justify-content:center;color:var(--text-3);flex-shrink:0}
+  .bava{width:30px;height:30px;border-radius:6px;background:#eef2ff;display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0}
+  .who .name{font-weight:600;color:var(--text)}
+  .who .time{color:var(--text-3);font-size:12px}
+  .msg-body{margin-left:39px;color:var(--text);line-height:1.7}
+
+  .think-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:8px;color:var(--text-2);font-size:13px;margin-bottom:16px}
+  .think-box .ok{color:var(--green);display:flex}
+  .think-box .rgt{margin-left:auto;display:flex;align-items:center;gap:12px;color:var(--text-3)}
+  .think-box .rgt .n{color:var(--text-2)}
+
+  .sec-title{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;margin:22px 0 12px;color:var(--text)}
+  .sec-title svg{stroke:var(--primary)}
+  .skill-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
+  .skill-table th{background:var(--bg);text-align:left;padding:9px 14px;font-weight:600;color:var(--text-2);border:1px solid var(--border)}
+  .skill-table td{padding:9px 14px;border:1px solid var(--border);color:var(--text);vertical-align:top;line-height:1.6}
+  .skill-table td:first-child{white-space:nowrap;font-weight:500;width:210px}
+  .skill-table th:first-child{width:210px}
+
+  .ctx-line{display:flex;align-items:center;gap:8px;color:var(--text-3);font-size:12px;margin-top:14px}
+
+  .cm-input{padding:10px 24px 18px}
+  .input-wrap{border:1px solid var(--border);border-radius:12px;padding:12px 14px 10px}
+  .input-wrap:focus-within{border-color:var(--primary)}
+  .input-wrap textarea{width:100%;border:0;outline:0;resize:none;font-family:inherit;font-size:14px;color:var(--text);height:24px;background:transparent}
+  .input-wrap textarea::placeholder{color:var(--text-3)}
+  .input-tools{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .it-icon{color:var(--text-3);cursor:pointer;display:flex}
+  .pill{border:1px solid var(--border);border-radius:8px;padding:5px 10px;display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);cursor:pointer}
+  .pill:hover{border-color:var(--primary);color:var(--primary)}
+  .pill.act{color:var(--primary);border-color:#c7d2fe;background:var(--primary-light)}
+  .send-btn{height:32px;padding:0 14px;background:var(--primary);color:#fff;border:0;border-radius:8px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px}
+  .send-btn:hover{background:var(--primary-hover)}
+
+  /* 右：空间管理 */
+  .chat-space{width:296px;background:#fff;border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+  .cs-head{padding:14px 16px 10px;display:flex;align-items:center;gap:8px;font-weight:600;color:var(--text)}
+  .cs-head .rgt{margin-left:auto;display:flex;gap:12px;color:var(--text-3)}
+  .cs-head .rgt svg{cursor:pointer}
+  .cs-scope{display:flex;gap:18px;padding:0 16px 10px}
+  .cs-scope .s{display:flex;align-items:center;gap:5px;color:var(--text-2);cursor:pointer;font-size:13px}
+  .cs-scope .s.active{color:var(--primary);font-weight:600}
+  .cs-tabs{display:flex;gap:22px;padding:0 16px;border-bottom:1px solid var(--border)}
+  .cs-tab{padding:8px 0;color:var(--text-2);cursor:pointer;border-bottom:2px solid transparent;font-size:13px}
+  .cs-tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+  .cs-filter{display:flex;align-items:center;gap:16px;padding:12px 16px 8px;font-size:13px}
+  .cs-filter .f{color:var(--text-2);cursor:pointer}
+  .cs-filter .f.active{color:var(--primary);font-weight:600}
+  .cs-upload{margin-left:auto;border:1px solid var(--border);border-radius:7px;padding:4px 10px;display:flex;align-items:center;gap:5px;color:var(--text-2);cursor:pointer;font-size:12px}
+  .cs-upload:hover{border-color:var(--primary);color:var(--primary)}
+  .cs-search{margin:2px 16px 8px;display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:8px;padding:0 10px;height:32px;color:var(--text-3)}
+  .cs-search input{border:0;outline:0;flex:1;height:100%;background:transparent;font-size:12px}
+  .cs-tree{flex:1;overflow:auto;padding:0 10px}
+  .fi{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;color:var(--text);font-size:13px}
+  .fi:hover{background:var(--bg)}
+  .fi .chk{width:14px;height:14px;border:1px solid #d5d8dd;border-radius:3px;flex-shrink:0}
+  .fi .fico{color:var(--text-3);display:flex;flex-shrink:0}
+  .fi.folder .fico{color:#e8b339}
+  .fi .arrow{color:var(--text-3);display:flex;margin-left:-2px}
+  .cs-foot{border-top:1px solid var(--border);padding:12px 16px}
+  .cs-foot-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .cs-foot-h .lbl{font-weight:600;color:var(--text);font-size:13px}
+  .cs-foot-h .rgt{display:flex;align-items:center;gap:6px;color:var(--text-3);font-size:11px}
+  .ses-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;color:var(--text);font-size:13px}
+  .cur-badge{margin-left:auto;background:var(--primary-light);color:var(--primary);border-radius:6px;padding:2px 8px;font-size:11px}
+
+  /* 添加到评测集：tooltip / 勾选模式 */
+  .tip{position:relative;display:inline-flex;align-items:center;cursor:pointer}
+  .tip>svg{color:var(--text-3)}
+  .tip:hover>svg{color:var(--primary)}
+  .tip .tiptext{position:absolute;top:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;z-index:30}
+  .tip .tiptext::before{content:"";position:absolute;top:-4px;left:50%;transform:translateX(-50%);border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:4px solid rgba(0,0,0,.7)}
+  .tip:hover .tiptext{opacity:1}
+
+  .sel-actions{display:flex;align-items:center;gap:10px}
+  .sel-count{color:var(--primary);font-weight:600;font-size:13px}
+  .btn-cancel{height:30px;padding:0 14px;border:1px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;color:var(--text-2);font-size:13px}
+  .btn-cancel:hover{border-color:var(--primary);color:var(--primary)}
+  .btn-add{height:30px;padding:0 14px;border:0;border-radius:7px;background:var(--primary);color:#fff;cursor:pointer;font-size:13px}
+  .btn-add:hover{background:var(--primary-hover)}
+
+  .msg-check{position:absolute;left:0;top:6px;width:18px;height:18px;border:1.5px solid #d5d8dd;border-radius:4px;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:#fff}
+  .msg-check.on{background:var(--primary);border-color:var(--primary)}
+  .msg-check.on::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);margin-top:-2px}
+
+  /* 回复底部动作栏 */
+  .msg-actions{display:flex;align-items:center;gap:14px;margin-top:18px;color:var(--text-3)}
+  .msg-actions .ma-icon{display:flex;cursor:pointer;color:var(--text-3)}
+  .msg-actions .ma-icon:hover{color:var(--primary)}
+  .msg-actions .ma-model{font-size:12px;color:var(--text-3)}
+  .msg-actions .ma-tok{font-size:12px;color:var(--text-3)}
+  .msg-actions .ma-tok.green{color:var(--green)}
+  .msg-actions .ma-sep{color:var(--text-3);font-size:12px;margin:0 -8px}
+
+  /* 单选选项组（添加到评测集弹窗） */
+  .opt-group{display:flex;flex-direction:column;gap:12px}
+  .opt{display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:14px;color:var(--text)}
+  .opt .radio{width:16px;height:16px;border:1.5px solid #d5d8dd;border-radius:50%;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center}
+  .opt.sel .radio{border-color:var(--primary)}
+  .opt.sel .radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--primary)}
+  .opt .otxt{flex:1;line-height:1.5}
+  .opt .osub{margin-top:8px}
+  .opt:not(.sel) .osub{display:none}
+  .inline-num{width:58px;height:30px;border:1px solid var(--border);border-radius:6px;padding:0 8px;text-align:center;outline:0;font-size:13px}
+  .inline-num:focus{border-color:var(--primary)}
+  .opt-group.opt-row{flex-direction:row;gap:26px}
+  .chk{width:14px;height:14px;border:1px solid #d5d8dd;border-radius:3px;flex-shrink:0;display:inline-block;cursor:pointer;position:relative}
+  .chk.on{background:var(--primary);border-color:var(--primary)}
+  .chk.on::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+
+  /* ===== 评测集编辑页 ===== */
+  .edit-head{display:flex;align-items:center;gap:14px;margin-bottom:2px}
+  .edit-head .back{margin:0}
+  .edit-head .etitle{font-size:20px;font-weight:700}
+  .esec{background:#fff;border-radius:12px;margin-top:16px;padding:20px 22px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .esec-h{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .step-badge{width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .esec-h .eh-title{font-weight:700;font-size:15px}
+  .esec-h .eh-sub{color:var(--text-3);font-size:12px}
+  .esec-h .eh-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .efield{margin-bottom:18px}
+  .efield:last-child{margin-bottom:0}
+  .efield label{display:block;margin-bottom:8px;font-weight:600;font-size:13px}
+  .efield .req{color:#e54545;margin-right:3px}
+  .input-count{position:relative}
+  .input-count .cnt{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:12px;pointer-events:none}
+  .ehint{color:var(--text-3);font-size:12px;margin-top:6px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+
+  /* 样本列表 */
+  .sample-hint{color:var(--text-3);font-size:12px;margin:2px 0 14px;line-height:1.6}
+  .sel-all{display:inline-flex;align-items:center;gap:8px;color:var(--text-2);font-size:13px;margin-bottom:12px;cursor:pointer}
+  #sampleList{max-height:600px;overflow-y:auto;padding-right:6px}
+  .sample-item{border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden}
+  .sample-item:last-child{margin-bottom:0}
+  .sample-item.open{border-color:#c7d2fe}
+  .sample-row{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer}
+  .sample-row .arrow{color:var(--text-3);display:flex;flex-shrink:0;transition:transform .15s}
+  .sample-item.open .sample-row .arrow{transform:rotate(90deg)}
+  .sample-row .idx{min-width:24px;height:22px;padding:0 6px;border-radius:6px;background:#eef1fe;color:#5b5be0;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .sample-row .stext{flex:1;font-size:14px;color:var(--text);font-weight:500}
+  .sample-row .stext .ds{color:var(--text-3);font-weight:400}
+  .sample-row .del{margin-left:auto;color:#e5a5a5;display:flex;cursor:pointer;flex-shrink:0}
+  .sample-row .del:hover{color:#e54545}
+  .sample-detail{padding:4px 16px 16px 16px;border-top:1px solid var(--border)}
+  .sd-fld{margin-top:12px}
+  textarea.sd-ta{height:72px;padding:10px 12px;resize:vertical;font-family:inherit;line-height:1.6;color:var(--text)}
+  .sample-detail .ctrl{width:100%}
+
+  /* 评分标准 */
+  .score-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .score-item{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+  .score-item .lab{color:var(--text-2)}
+  .pct-input{width:96px;height:34px;border:1px solid var(--border);border-radius:8px;padding:0 10px;outline:0;font-size:14px;font-weight:400}
+  .pct-input:focus{border-color:var(--primary)}
+  .score-line .plus{color:var(--primary);font-size:16px;font-weight:600}
+  .score-line .unit{color:var(--text-3);font-weight:400}
+  .sum-bar{background:var(--bg);border-radius:8px;padding:12px 14px;color:var(--text-3);font-size:13px;margin-top:16px}
+  .eval-foot{display:flex;align-items:center;margin-top:16px}
+  .eval-foot .lbl{color:var(--text-2);font-size:13px}
+  .evaluator-tag{display:inline-flex;align-items:center;gap:6px;background:var(--primary-light);color:var(--primary);border-radius:8px;padding:6px 12px;font-size:12px;margin-top:12px;cursor:default}
+  .evaluator-tag .x{cursor:pointer;display:flex}
+
+  /* 底部操作栏 */
+  .edit-foot{background:#fff;border-radius:12px;margin-top:16px;padding:16px 22px;display:flex;justify-content:flex-end;gap:12px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+
+  /* 提炼中视图 */
+  .refine-loading{text-align:center;padding:18px 0 4px}
+  .refine-loading .dots{display:flex;justify-content:center;gap:9px;margin-bottom:22px}
+  .refine-loading .dots span{width:11px;height:11px;border-radius:50%;background:var(--primary);opacity:.35;animation:rfblink 1s infinite}
+  .refine-loading .dots span:nth-child(2){animation-delay:.16s}
+  .refine-loading .dots span:nth-child(3){animation-delay:.32s}
+  @keyframes rfblink{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+  .refine-loading .rf-main{color:var(--primary);font-size:14px;font-weight:600;margin-bottom:10px}
+  .refine-loading .rf-sub{color:var(--text-3);font-size:13px;margin-bottom:18px}
+  .refine-loading .rf-link{color:var(--primary);font-size:13px;cursor:pointer}
+
+  /* 新样本徽标 */
+  .new-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:5px;background:#fff3e0;color:#e8862b;font-size:11px;font-weight:600;vertical-align:middle}
+  .sample-item.is-new{border-color:#ffd8a8;background:#fffdf9}
+
+  /* ===== 对话评价页 ===== */
+  .range-bar{display:flex;align-items:center;gap:8px}
+  .range-bar .rbtn{height:32px;padding:0 14px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;color:var(--text-2);font-size:13px;display:inline-flex;align-items:center}
+  .range-bar .rbtn:hover{border-color:var(--primary);color:var(--primary)}
+  .range-bar .rbtn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+  .range-bar .date-box{height:32px;padding:0 12px;border:1px solid var(--border);border-radius:8px;display:inline-flex;align-items:center;gap:8px;color:var(--text-2);font-size:13px}
+  .range-bar .date-box svg{color:var(--text-3)}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:14px}
+  .stat-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;align-items:center;gap:14px}
+  .stat-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .stat-ico.green{background:#e7f7ee;color:var(--green)}
+  .stat-ico.gray{background:#f2f3f5;color:var(--text-2)}
+  .stat-ico.blue{background:#e8f0fe;color:#4a7dff}
+  .stat-ico.red{background:#fdecec;color:#e54545}
+  .stat-meta .lab{color:var(--text-3);font-size:13px;margin-bottom:4px}
+  .stat-meta .val{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+
+  .chart-row{display:grid;grid-template-columns:1.9fr 1fr;gap:16px;margin-top:16px}
+  .chart-title{font-weight:700;font-size:15px;margin-bottom:6px}
+  .chart-box{position:relative}
+  .legend{display:flex;justify-content:center;gap:22px;font-size:12px;color:var(--text-2);margin:2px 0 4px}
+  .legend .lg{display:inline-flex;align-items:center;gap:6px}
+  .legend .dot{width:9px;height:9px;border-radius:50%}
+  .legend .dot.g{background:var(--green)}
+  .legend .dot.r{background:#e54545}
+  .legend .dot.p{background:var(--primary)}
+  .chart-tip{position:absolute;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:10px 14px;font-size:12px;color:var(--text-2);min-width:150px}
+  .chart-tip .tt-date{color:var(--text);font-weight:600;margin-bottom:8px}
+  .chart-tip .tt-row{display:flex;align-items:center;gap:6px;margin:4px 0}
+  .chart-tip .tt-row .k{flex:1;display:inline-flex;align-items:center;gap:6px}
+  .chart-tip .tt-row .v{color:var(--text);font-weight:600}
+
+  .reason-item{margin-bottom:16px}
+  .reason-head{display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);margin-bottom:8px}
+  .reason-track{height:12px;border-radius:6px;background:#f2f3f5;overflow:hidden}
+  .reason-fill{height:100%;border-radius:6px;background:#e54545}
+
+  .filter-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .filter-row .fsel{height:34px;min-width:130px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 10px;color:var(--text-3);font-size:13px}
+  .eval-count{color:var(--text-3);font-size:13px;font-weight:400;margin-left:8px}
+  .btn.disabled,.btn.disabled:hover{opacity:.55;cursor:not-allowed;color:var(--text-3);border-color:var(--border);background:#fff}
+
+  /* ===== 新功能序号标记 ===== */
+  .feat-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#ff4d4f;color:#fff;font-size:12px;font-weight:700;line-height:1;vertical-align:middle;margin-left:6px;box-shadow:0 0 0 3px rgba(255,77,79,.2);flex-shrink:0;animation:featPulse 1.6s infinite;font-family:-apple-system,"PingFang SC",sans-serif}
+  .feat-badge.abs{position:absolute;top:-9px;right:-11px;margin:0;z-index:25}
+  .feat-badge.dot{width:9px;height:9px;margin-left:5px;box-shadow:0 0 0 3px rgba(255,77,79,.18)}
+  @keyframes featPulse{0%,100%{box-shadow:0 0 0 3px rgba(255,77,79,.22)}50%{box-shadow:0 0 0 6px rgba(255,77,79,.06)}}
+
+  /* ===== 红点一键隐藏/显示（顶栏集成）===== */
+  .hide-feats .feat-badge{display:none !important}
+  .feat-eye{display:inline-flex;align-items:center;gap:6px;cursor:pointer;height:32px;padding:0 14px;border-radius:16px;background:var(--primary-light);color:var(--primary);border:1px solid #c7d2fe;font-size:13px;font-weight:500;white-space:nowrap;transition:background .2s,color .2s}
+  .feat-eye:hover{background:#e0e7ff}
+  .feat-eye .ic{width:16px;height:16px;flex-shrink:0}
+  .feat-eye .eye-off{display:none}
+  .hide-feats .feat-eye{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .hide-feats .feat-eye:hover{background:var(--primary-hover)}
+  .hide-feats .feat-eye .eye-on{display:none}
+  .hide-feats .feat-eye .eye-off{display:inline-flex}
+</style>
+</head>
+<body>
+
+<!-- top nav -->
+<div class="topbar">
+  <div class="logo"><span class="mark"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#e8862b"><path d="M4 10c0-3 3-5 8-5s8 2 8 5"></path><path d="M4 10c-1 2 0 4 2 4M20 10c1 2 0 4-2 4"></path><circle cx="9" cy="11" r="1.3" fill="#e8862b"></circle><circle cx="15" cy="11" r="1.3" fill="#e8862b"></circle><path d="M7 15c1 2 3 3 5 3s4-1 5-3"></path></svg></span><div>DataClaw<small>数据分析项目</small></div></div>
+  <div class="topnav">
+    <div class="item active" id="navChat" onclick="showModule('chat')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l.9-5A8 8 0 1 1 21 12z"></path></svg> 对话<span class="feat-badge">1</span></div>
+    <div class="item"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="6" rx="7" ry="3"></ellipse><path d="M5 6v6c0 1.7 3 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3 3 7 3s7-1.3 7-3v-6"></path></svg> 数据源</div>
+    <div class="item"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z"></path></svg> 知识库</div>
+    <div class="item"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M10 21a2 2 0 0 0 4 0"></path></svg> 订阅</div>
+    <div class="item" id="navStat" onclick="showModule('stat')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg> 统计<span class="feat-badge dot" title="含新功能"></span></div>
+    <div class="item"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3"></circle><path d="M3 20c0-3 3-5 6-5s6 2 6 5"></path><path d="M16 6a3 3 0 0 1 0 6M21 20c0-2.5-2-4-4-4.5"></path></svg> 成员</div>
+    <div class="item"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a7 7 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 2 2 3.5 2.4-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5c.1-.3.1-.6.1-1z"></path></svg> 设置</div>
+  </div>
+  <div class="topbar-right">
+    <div class="space-switch"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path></svg> 切换空间 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"></path></svg></div>
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11l9-8 9 8M5 10v9h14v-9"></path></svg>
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l.9-5A8 8 0 1 1 21 12z"></path></svg>
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 12a8 8 0 0 1 16 0v5a2 2 0 0 1-2 2h-1v-6h3M7 19H6a2 2 0 0 1-2-2v-5h3z"></path></svg>
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="12" rx="1"></rect><path d="M8 20h8"></path></svg>
+    <div class="avatar"></div>
+    <span class="feat-eye" id="featEye" onclick="toggleFeats()" title="一键隐藏 / 显示全部新功能红点">
+      <svg class="ic eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="2.5"></circle></svg>
+      <svg class="ic eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3.5-7 10-7c2 0 3.9.6 5.5 1.6M22 12s-3.5 7-10 7c-2 0-3.9-.6-5.5-1.6"></path><path d="M9.5 9.5a3.5 3.5 0 0 0 5 5M3 3l18 18"></path></svg>
+      <span id="featEyeTxt">隐藏红点</span>
+    </span>
+  </div>
+</div>
+
+<!-- ============ 对话模块 ============ -->
+<div class="chat-layout" id="chatModule">
+  <!-- 左：会话列表 -->
+  <aside class="chat-list">
+    <div class="cl-top">
+      <button class="new-chat"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg> 新建对话</button>
+      <div class="cl-iconbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"></path></svg></div>
+      <div class="cl-iconbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l2 2 4-4M4 4h16v16H4z"></path></svg></div>
+      <div class="cl-iconbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></div>
+    </div>
+    <div class="cl-search"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg><input placeholder="搜索对话..."></div>
+    <div class="cl-group">对话分组 <span class="plus"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg></span></div>
+    <div class="cl-recent">最近对话</div>
+    <div class="cl-items">
+      <div class="ci active">
+        <div class="t"><svg class="ic" style="width:13px;height:13px;vertical-align:-2px;color:var(--primary);transform:rotate(42deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 17v5M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg> 新对话</div>
+        <div class="m"><svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg> 2026-09-17 14:43:34</div>
+      </div>
+      
+      <div class="ci cur">
+        <div class="t">关于数据分析的skill有哪些</div>
+        <div class="m"><svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg> 2026-08-19 15:31:00</div>
+      </div>
+      <div class="ci">
+        <div class="t">omega skill 有哪些功能</div>
+        <div class="m"><svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg> 2026-08-17 16:18:38</div>
+      </div>
+      <div class="ci">
+        <div class="t">tdata mcp有哪些服务</div>
+        <div class="m"><svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg> 2026-08-11 16:09:05</div>
+      </div>
+      
+      <div class="ci">
+        <div class="t">查询Qdata有哪些语义指标分…</div>
+        <div class="m"><svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg> 2026-08-11 15:55:04</div>
+      </div>
+      <div class="ci">
+        <div class="t">总结一下,我常使用的报告风…</div>
+        <div class="m"><svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg> 2026-07-24 17:09:56</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 中：对话主区 -->
+  <section class="chat-main">
+    <div class="cm-head">
+      <span class="cm-title">关于数据分析的skill有哪些</span>
+      <span class="edit"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg></span>
+      <div class="rgt" id="normalActions">
+        <span class="credit-badge">≈62 积分 (估算)</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg>
+        <span class="tip" onclick="enterSelect()">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 9.5h5M8 13h3M16 14.5v4M14 16.5h4"></path></svg>
+          <span class="tiptext">添加到评测集</span>
+          <span class="feat-badge abs">1</span>
+        </span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg>
+      </div>
+      <div class="rgt sel-actions hidden" id="selActions">
+        <span class="sel-count">已选 <b id="selCount">0</b> 项</span>
+        <button class="btn-cancel" onclick="exitSelect()">取消</button>
+        <button class="btn-add" onclick="addSelected()">添加选中</button>
+      </div>
+    </div>
+
+    <div class="cm-body">
+      <!-- 用户消息 -->
+      <div class="msg">
+        <div class="who">
+          <span class="msg-check hidden" onclick="toggleMsgCheck(this)"></span>
+          <div class="uava"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg></div>
+          <span class="name">zhangsan</span>
+          <span class="time">2026-08-19 15:31:25</span>
+        </div>
+        <div class="msg-body">关于数据分析的skill有哪些</div>
+      </div>
+
+      <!-- DataClaw 回复 -->
+      <div class="msg">
+        <div class="who">
+          
+          <div class="bava"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="7" width="16" height="12" rx="2"></rect><path d="M12 3v4M9 13h.01M15 13h.01M9 17h6"></path></svg></div>
+          <span class="name">DataClaw</span>
+        </div>
+        <div class="msg-body">
+          <div class="think-box">
+            <span class="ok"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M8 12l3 3 5-6"></path></svg></span>
+            执行了 思考 1 次
+            <span class="rgt">
+              <span class="n">1</span>
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6"></path></svg>
+            </span>
+          </div>
+
+          <p>以下是当前工作空间中与<strong>数据分析</strong>相关的 skills，我按用途分类整理：</p>
+
+          <div class="sec-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16M8 15l3-4 3 3 4-6"></path></svg> 数据查询与检索</div>
+          <table class="skill-table">
+            <thead><tr><th>Skill</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td>search-data-tables</td><td>搜索已接入语义库的数据表（团队沉淀过、字段有描述、维度指标已分类的表）</td></tr>
+              <tr><td>data-explorer</td><td>在 search-data-tables 找不到时，搜索用户有权限的【全量数据源】</td></tr>
+              <tr><td>data-query</td><td>通过大数据平台执行 SQL 查询（Hive/Presto/Doris/MySQL/MongoDB）</td></tr>
+              <tr><td>domain-knowledge</td><td>业务术语和领域知识解析（分析前先理解业务名词）</td></tr>
+              <tr><td>vega-data-search</td><td>通过 Vega 图表/看板搜索、查询业务数据</td></tr>
+              <tr><td>vega_dashboards_insight</td><td>Vega 平台看板智能洞察</td></tr>
+              <tr><td>search-lago-data</td><td>检索已绑定的 Data-Lago 知识库中的报告/文档数据</td></tr>
+            </tbody>
+          </table>
+
+          <div class="msg-actions">
+            <span class="ma-icon" title="赞"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM7 10l4-7a2 2 0 0 1 3 2l-1 5h5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 16.8 21H7z"></path></svg></span>
+            <span class="ma-icon" title="踩"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 14V3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1zM17 14l-4 7a2 2 0 0 1-3-2l1-5H6a2 2 0 0 1-2-2.3l1.2-6A2 2 0 0 1 7.2 3H17z"></path></svg></span>
+            <span class="ma-icon" title="分支"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="6" r="3"></circle><path d="M6 9v6M18 9a9 9 0 0 1-9 9"></path></svg></span>
+            <div class="spacer"></div>
+            <span class="ma-model">deepseek-v4-pro</span>
+            <span class="ma-tok green">272,768 ↑</span>
+            <span class="ma-sep">/</span>
+            <span class="ma-tok">14,054 ↑</span>
+            <span class="ma-sep">/</span>
+            <span class="ma-tok">4,046 ↓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="cm-input">
+      <div class="input-wrap">
+        <textarea placeholder="输入您的问题，输入 / 唤起指令和技能... (Shift+Enter 换行)"></textarea>
+        <div class="input-tools">
+          <span class="it-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12l-9 9a4.5 4.5 0 0 1-6-6l9-9a3 3 0 0 1 4 4l-9 9a1.5 1.5 0 0 1-2-2l8-8"></path></svg></span>
+          <span class="pill">deepseek-v4-pro</span>
+          <span class="pill"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"></path></svg> 快速分析</span>
+          <span class="pill act"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> 高级设置</span>
+          <div class="spacer"></div>
+          <span class="it-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"></path></svg></span>
+          <button class="send-btn"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg> 发送 <svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"></path></svg></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 右：空间管理 -->
+  <aside class="chat-space">
+    <div class="cs-head">
+      空间管理
+      <div class="rgt">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-1 4M20 5v6h-6"></path></svg>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </div>
+    </div>
+    <div class="cs-scope">
+      <span class="s active"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg> 个人</span>
+      <span class="s"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3"></circle><path d="M3 20c0-3 3-5 6-5s6 2 6 5"></path><path d="M16 6a3 3 0 0 1 0 6M21 20c0-2.5-2-4-4-4.5"></path></svg> 团队</span>
+      <span class="s"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg> 共享</span>
+    </div>
+    <div class="cs-tabs">
+      <span class="cs-tab active">数据</span>
+      <span class="cs-tab">Skills</span>
+      <span class="cs-tab">Knowledge</span>
+    </div>
+    <div class="cs-filter">
+      <span class="chk" id="selAllFiles" title="全选" onclick="toggleSelectAll(this)"></span>
+      <span class="f active">全部文件</span>
+      <span class="f">HTML 报告</span>
+      <span class="cs-upload"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19V5M5 12l7-7 7 7"></path></svg> 上传 <svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"></path></svg></span>
+    </div>
+    <div class="cs-search"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg><input placeholder="搜索文件名或路径..."></div>
+    <div class="cs-tree">
+      <div class="fi folder"><span class="chk"></span><span class="arrow"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6"></path></svg></span><span class="fico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>html</div>
+      <div class="fi folder"><span class="chk"></span><span class="arrow"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6"></path></svg></span><span class="fico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span> charts</div>
+      <div class="fi folder"><span class="chk"></span><span class="arrow"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6"></path></svg></span><span class="fico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span> configs</div>
+      <div class="fi folder"><span class="chk"></span><span class="arrow"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6"></path></svg></span><span class="fico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span> memory</div>
+      <div class="fi folder"><span class="chk"></span><span class="arrow"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6"></path></svg></span><span class="fico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span> reports</div>
+      <div class="fi folder"><span class="chk"></span><span class="arrow"><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6"></path></svg></span><span class="fico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span> uploads</div>
+      <div class="fi"><span class="chk"></span><span class="fico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3v5h5M6 3h9l5 5v13H6z"></path></svg></span> .pip-packages</div>
+      <div class="fi"><span class="chk"></span><span class="fico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3v5h5M6 3h9l5 5v13H6z"></path><path d="M9 13h6M9 17h6"></path></svg></span> game_player_events.csv</div>
+      <div class="fi"><span class="chk"></span><span class="fico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3v5h5M6 3h9l5 5v13H6z"></path><path d="M9 13h6M9 17h6"></path></svg></span> game.csv</div>
+      
+      
+    </div>
+    <div class="cs-foot">
+      <div class="cs-foot-h">
+        <span class="lbl">会话产物</span>
+        <span class="rgt"><span class="toggle"></span> 查看所有会话产物</span>
+      </div>
+      <div class="ses-row">
+        <span class="chk"></span>
+        <span class="fico" style="color:#e8b339"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+        ses_6a855bb48…
+        <span class="cur-badge">当前会话</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="layout hidden" id="statModule">
+  <!-- sidebar -->
+  <aside class="sidebar">
+    <div class="side-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg> 统计</div>
+    <div class="menu">
+      <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16M8 15l3-4 3 3 4-6"></path></svg> 空间用量</div>
+      <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 21h8M12 17v4M6 4h12v4a6 6 0 0 1-12 0zM6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3"></path></svg> 个人积分</div>
+      <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="2.5"></circle></svg> 对话监管</div>
+      <div class="mi" id="menuEval" onclick="showPage('eval')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16M8 15l3-4 3 3 4-6"></path></svg> 对话评价<span class="feat-badge">2</span></div>
+      <div class="mi parent"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3M8 3h8M7 15h10"></path></svg> 评测 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 15l6-6 6 6"></path></svg></div>
+      <div class="sub">
+        <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"></path></svg> skill评测</div>
+        <div class="mi active" id="menuSet" onclick="showPage('set')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg> 评测集</div>
+        <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg> 评估器</div>
+        <div class="mi" id="menuOnce" onclick="showPage('once')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3M8 3h8M7 15h10"></path></svg> 评测任务</div>
+        <div class="mi" id="menuPeriodic" onclick="showPage('periodic')" style="position:relative"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg> 定时评测<span class="feat-badge">3</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- content -->
+  <main class="content">
+
+    <!-- ============ 对话评价 ============ -->
+    <section id="evalPage" class="hidden">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div>
+          <div class="page-title">对话评价</div>
+          <div class="page-sub">成员对 AI 回复的点赞/点踩汇总（含 Web 与 POPO 渠道）</div>
+        </div>
+        <div class="range-bar" style="margin-left:auto">
+          <button class="rbtn">今天</button>
+          <button class="rbtn active">近 7 天</button>
+          <button class="rbtn">近 14 天</button>
+          <button class="rbtn">近 30 天</button>
+          <span class="date-box">2026-09-11 <svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"></path></svg> 2026-09-17 <svg class="ic" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg></span>
+          <button class="rbtn"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-1 4M20 5v6h-6"></path></svg> 刷新</button>
+        </div>
+      </div>
+
+      <!-- 指标概览 -->
+      <div class="card">
+        <div style="font-weight:700;font-size:15px">指标概览</div>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-ico green"><svg class="ic" style="width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><path d="M9 9h.01M15 9h.01"></path></svg></div>
+            <div class="stat-meta"><div class="lab">点赞率</div><div class="val">50.0%</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-ico gray"><svg class="ic" style="width:24px;height:24px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l.9-5A8 8 0 1 1 21 12z"></path><path d="M8 12h.01M12 12h.01M16 12h.01"></path></svg></div>
+            <div class="stat-meta"><div class="lab">评价总数</div><div class="val">2</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-ico blue"><svg class="ic" style="width:22px;height:22px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM7 10l4-7a2 2 0 0 1 3 2l-1 5h5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 16.8 21H7z"></path></svg></div>
+            <div class="stat-meta"><div class="lab">点赞</div><div class="val">1</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-ico red"><svg class="ic" style="width:22px;height:22px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 14V3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1zM17 14l-4 7a2 2 0 0 1-3-2l1-5H6a2 2 0 0 1-2-2.3l1.2-6A2 2 0 0 1 7.2 3H17z"></path></svg></div>
+            <div class="stat-meta"><div class="lab">点踩</div><div class="val">1</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 趋势 + 原因分布 -->
+      <div class="chart-row">
+        <div class="card">
+          <div class="chart-title">评价趋势</div>
+          <div class="chart-box">
+            <div class="legend">
+              <span class="lg"><span class="dot g"></span>点赞</span>
+              <span class="lg"><span class="dot r"></span>点踩</span>
+              <span class="lg"><span class="dot p"></span>点赞率</span>
+            </div>
+            <svg viewBox="0 0 720 300" style="width:100%;height:auto;display:block">
+              <line x1="56" y1="20" x2="710" y2="20" stroke="#eef0f3"></line>
+              <line x1="56" y1="80" x2="710" y2="80" stroke="#eef0f3"></line>
+              <line x1="56" y1="140" x2="710" y2="140" stroke="#eef0f3"></line>
+              <line x1="56" y1="200" x2="710" y2="200" stroke="#eef0f3"></line>
+              <line x1="56" y1="260" x2="710" y2="260" stroke="#e3e6ea"></line>
+              <g fill="#8f959e" font-size="11" text-anchor="end">
+                <text x="48" y="24">2</text><text x="48" y="84">1.5</text>
+                <text x="48" y="144">1</text><text x="48" y="204">0.5</text><text x="48" y="264">0</text>
+              </g>
+              <rect x="662" y="140" width="36" height="120" fill="#18a058"></rect>
+              <rect x="662" y="20" width="36" height="120" fill="#e54545"></rect>
+              <g fill="#8f959e" font-size="11" text-anchor="middle">
+                <text x="80" y="282">2026-09-11</text><text x="180" y="282">2026-09-12</text>
+                <text x="280" y="282">2026-09-13</text><text x="380" y="282">2026-09-14</text>
+                <text x="480" y="282">2026-09-15</text><text x="580" y="282">2026-09-16</text>
+                <text x="680" y="282">2026-09-17</text>
+              </g>
+            </svg>
+            <div class="chart-tip" style="left:63%;top:30%">
+              <div class="tt-date">2026-09-17</div>
+              <div class="tt-row"><span class="k"><span style="width:8px;height:8px;border-radius:50%;background:#4f46e5;display:inline-block"></span>点赞率</span><span class="v">50%</span></div>
+              <div class="tt-row"><span class="k"><span style="width:8px;height:8px;border-radius:50%;background:#18a058;display:inline-block"></span>点赞</span><span class="v">1</span></div>
+              <div class="tt-row"><span class="k"><span style="width:8px;height:8px;border-radius:50%;background:#e54545;display:inline-block"></span>点踩</span><span class="v">1</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="chart-title">点踩原因分布</div>
+          <div class="reason-item" style="margin-top:14px">
+            <div class="reason-head"><span>回答不准确</span><span>1</span></div>
+            <div class="reason-track"><div class="reason-fill" style="width:100%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 评价明细 -->
+      <div class="card">
+        <div style="font-weight:700;font-size:15px;margin-bottom:14px">评价明细 <span class="eval-count">2 条</span></div>
+        <div class="filter-row">
+          <select class="fsel"><option>评价类型</option><option>点赞</option><option>点踩</option></select>
+          <select class="fsel"><option>点踩原因</option><option>回答不准确</option><option>响应太慢</option></select>
+          <select class="fsel"><option>评价人</option><option>zhangsan</option><option>lisi</option></select>
+          <select class="fsel"><option>补充说明</option><option>有</option><option>无</option></select>
+          <div class="spacer"></div>
+          <button class="btn disabled" id="evalAddBtn" onclick="evalAddToSet()" style="position:relative"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 9.5h5M8 13h3M16 14.5v4M14 16.5h4"></path></svg> 添加到评测集<span class="feat-badge">2</span></button>
+          <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 15V3M8 7l4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg> 导出 CSV</button>
+        </div>
+
+        <table>
+          <thead><tr>
+            <th>评价时间</th><th>评价人</th><th>会话</th><th>评价</th><th>原因标签</th><th>补充说明</th><th style="text-align:right">操作</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="chk" style="vertical-align:-2px;margin-right:6px" onclick="toggleEvalCheck(this)"></span>09-17 06:24</td>
+              <td>zhangsan</td>
+              <td><span class="link">高消耗会话测试</span></td>
+              <td><span class="tag fail">点踩</span></td>
+              <td>回答不准确</td>
+              <td class="muted">—</td>
+              <td style="text-align:right"><span class="op" onclick="openAddSetModal()">添加到评测集<span class="feat-badge">2</span></span><span class="op">查看上下文</span></td>
+            </tr>
+            <tr>
+              <td><span class="chk" style="vertical-align:-2px;margin-right:6px" onclick="toggleEvalCheck(this)"></span>09-16 15:30</td>
+              <td>lisi</td>
+              <td><span class="link">数据分析skill查询</span></td>
+              <td><span class="tag done">点赞</span></td>
+              <td class="muted">—</td>
+              <td class="muted">—</td>
+              <td style="text-align:right"><span class="op" onclick="openAddSetModal()">添加到评测集<span class="feat-badge">2</span></span><span class="op">查看上下文</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 评测集管理 ============ -->
+    <section id="setPage">
+      <div class="page-title">评测集管理</div>
+      <div class="page-sub">创建和管理评测集，配置评估数据、评分标准并提交评估任务</div>
+
+      <div class="card">
+        <div class="toolbar">
+          <div class="search"><input placeholder="输入评测集名称"><div class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg></div></div>
+          <button class="btn primary">查询</button>
+          <button class="btn">重置</button>
+          <div class="spacer"></div>
+          <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-1 4M20 5v6h-6"></path></svg> 刷新</button>
+          <button class="btn primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg> 新建评测集</button>
+        </div>
+
+        <table>
+          <thead><tr>
+            <th>名称</th><th>样本数</th><th>最近评测总分</th><th>创建者</th><th>创建时间</th><th>更新时间</th><th>操作</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="link">游戏数据分析SQL评测</span></td>
+              <td><span class="num-badge">30</span></td>
+              <td><span class="score-good">100.0</span></td>
+              <td>zhangsan</td>
+              <td>2026-08-25 11:39:38</td>
+              <td>2026-09-09 18:08:51</td>
+              <td>
+                <span class="op">详情</span>
+                <span class="op" onclick="openEditSet()">编辑</span>
+                <span class="op">去评测</span>
+                <span class="op danger">删除</span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="link">明确答案测评集</span></td>
+              <td><span class="num-badge">30</span></td>
+              <td><span class="score-bad">33.3</span></td>
+              <td>zhangsan</td>
+              <td>2026-08-25 14:16:17</td>
+              <td>2026-09-09 16:52:02</td>
+              <td>
+                <span class="op">详情</span>
+                <span class="op">编辑</span>
+                <span class="op">去评测</span>
+                <span class="op danger">删除</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pager">
+          <span class="total-count">共 2 条</span>
+          <span class="pg">‹</span><span class="pg active">1</span><span class="pg">›</span>
+          <span class="pg">20 条/页 ▾</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 评测集编辑页 ============ -->
+    <section id="editPage" class="hidden">
+      <div class="edit-head">
+        <div class="back" onclick="backToSet()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 6l-6 6 6 6"></path></svg> 返回</div>
+        <div class="etitle">编辑：游戏数据分析SQL评测</div>
+      </div>
+
+      <!-- 1 基本信息 -->
+      <div class="esec">
+        <div class="esec-h"><span class="step-badge">1</span><span class="eh-title">基本信息</span><span class="eh-sub">名称必填</span></div>
+        <div class="efield">
+          <label><span class="req">*</span>评测集名称</label>
+          <div class="input-count">
+            <input class="ctrl" value="游戏数据分析SQL评测">
+            <span class="cnt">11 / 100</span>
+          </div>
+        </div>
+        <div class="efield">
+          <label>描述</label>
+          <textarea class="ctrl" style="height:96px">game_player_events数据表用户输入SQL生成准确率评测</textarea>
+        </div>
+      </div>
+
+      <!-- 2 问题与期望回答 -->
+      <div class="esec">
+        <div class="esec-h">
+          <span class="step-badge">2</span><span class="eh-title">问题与期望回答</span><span class="eh-sub">共 <span id="sampleCount">30</span> 个样本 · 用户输入必填</span>
+          <div class="eh-right">
+            <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 15V3M8 7l4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg> 批量导入</button>
+            <button class="btn primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg> 添加样本</button>
+          </div>
+        </div>
+        <div class="sample-hint">每个样本可填「用户输入」（必填）和「期望输出」（选填）；保存后落库。批量导入支持 .csv / .xlsx / .xls，表头需含「用户输入」列（可选「期望输出」列）。</div>
+        <div class="sel-all"><span class="chk" id="setSelAll" onclick="toggleSampleAll(this)"></span> 全选</div>
+        <div id="sampleList"></div>
+      </div>
+
+      <!-- 3 评测规格 -->
+      <div class="esec">
+        <div class="esec-h"><span class="step-badge">3</span><span class="eh-title">评测规格</span><span class="eh-sub">实跑 / 评分模型</span></div>
+        <div class="grid-2">
+          <div class="efield">
+            <label>实跑模型</label>
+            <select class="ctrl"><option>qwen3.5-plus</option><option>deepseek-v4-pro</option><option>claude-sonnet-4-6</option><option>glm-5.2</option></select>
+            <div class="ehint">实跑评测 step1 执行被测样本时使用的模型</div>
+          </div>
+          <div class="efield">
+            <label>评分模型</label>
+            <select class="ctrl"><option>glm-5.2</option><option>qwen3.5-plus</option><option>deepseek-v4-pro</option><option>claude-sonnet-4-6</option></select>
+            <div class="ehint">LLM 评测 + 人工评分兜底所用的模型</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 评分标准 -->
+      <div class="esec">
+        <div class="esec-h"><span class="step-badge">4</span><span class="eh-title">评分标准</span><span class="eh-sub">规则分 + LLM 分 + 人工分 = 100</span><span class="eh-right"><span style="color:var(--green);font-weight:700">合计 100</span></span></div>
+        <div class="score-line">
+          <div class="score-item"><span class="lab">规则分 * </span><input class="pct-input" value="0"><span class="unit">%</span></div>
+          <span class="plus" style="color: rgb(102, 102, 102) !important; -webkit-text-fill-color: rgb(102, 102, 102) !important;">+</span>
+          <div class="score-item"><span class="lab">LLM 分 * </span><input class="pct-input" value="80"><span class="unit">%</span></div>
+          <span class="plus" style="color: rgb(102, 102, 102) !important; -webkit-text-fill-color: rgb(102, 102, 102) !important;">+</span>
+          <div class="score-item"><span class="lab">人工分 * </span><input class="pct-input" value="20"><span class="unit">%</span></div>
+        </div>
+        <div class="sum-bar">综合分 = 规则分 × 0% + LLM 分 × 80% + 人工分 × 20%</div>
+        <div class="eval-foot">
+          <span class="lbl">已添加评估器 1 个</span>
+          <div class="eh-right" style="margin-left:auto">
+            <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg> 添加评估器</button>
+          </div>
+        </div>
+        <div><span class="evaluator-tag">SQL一致性 · 大模型 <span class="x"><svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 6l12 12M18 6L6 18"></path></svg></span></span></div>
+      </div>
+
+      <!-- 底部操作栏 -->
+      <div class="edit-foot">
+        <button class="btn" onclick="backToSet()">取消</button>
+        <button class="btn primary" onclick="backToSet()">保存</button>
+      </div>
+    </section>
+
+    <!-- ============ 评测任务（一次性评测）============ -->
+    <section id="listPage" class="hidden">
+      <div class="page-title">评测任务</div>
+      <div class="page-sub">当前空间内成员发起的一次性评测任务</div>
+
+      <div class="card">
+        <div class="toolbar">
+          <div class="search"><input placeholder="搜索任务名称/描述"><div class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg></div></div>
+          <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-1 4M20 5v6h-6"></path></svg> 刷新</button>
+          <div class="spacer"></div>
+          <button class="btn primary" onclick="openModal(false)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg> 发起评测</button>
+        </div>
+
+        <table>
+          <thead><tr>
+            <th>名称</th><th>阶段</th><th>结果</th><th>分数</th><th>模型</th><th>发起人</th><th>创建时间</th><th>操作</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="link">答案一致性1.0.0</span></td>
+              <td><span class="tag done">已完成</span></td><td>3/3</td><td>0.000</td>
+              <td>deepseek-flash</td><td>张三</td><td>2026-09-15 11:22</td>
+              <td><span class="op danger">删除</span></td>
+            </tr>
+            <tr>
+              <td><span class="link">SQL一致性1.0.0</span></td>
+              <td><span class="tag wait">待人工审</span></td><td>4/4</td><td>0.000</td>
+              <td>claude-sonnet-4-6</td><td>张三</td><td>2026-09-15 10:23</td>
+              <td><span class="op danger">删除</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pager">
+          <span class="total-count">共 2 条</span>
+          <span class="pg">‹</span><span class="pg active">1</span><span class="pg">›</span>
+          <span class="pg">20 条/页 ▾</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 定时评测（周期评测）============ -->
+    <section id="periodicPage" class="hidden">
+      <div class="page-title">定时评测<span class="feat-badge">3</span></div>
+      <div class="page-sub">按调度规则周期性触发的评测任务</div>
+
+      <div class="card">
+        <div class="toolbar">
+          <div class="search"><input placeholder="搜索任务名称/描述"><div class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg></div></div>
+          <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-1 4M20 5v6h-6"></path></svg> 刷新</button>
+          <div class="spacer"></div>
+          <button class="btn primary" onclick="openModal(true)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg> 新建定时评测</button>
+        </div>
+
+        <table>
+          <thead><tr>
+            <th>名称</th><th>调度规则</th><th>状态</th><th>上次执行</th><th>下次执行</th>
+            <th>模型</th><th>发起人</th><th>操作</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="link" onclick="gotoHistory('答案一致性-每日巡检')">答案一致性-每日巡检</span></td>
+              <td>每天 02:00 <span class="cron" title="0 0 2 * * ?"><svg class="ic" style="width:14px;height:14px;vertical-align:-2px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg></span></td>
+              <td><span class="toggle on" onclick="toggleStatus(this,'r1')"></span></td>
+              <td>09-16 02:00 · <span class="tag done">3/3</span></td>
+              <td id="next-r1">09-17 02:00</td>
+              <td>deepseek-flash</td><td>张三</td>
+              <td>
+                <span class="op">立即执行</span>
+                <span class="op" onclick="gotoHistory('答案一致性-每日巡检')">执行历史</span>
+                <span class="op" onclick="openEditModal('r1')">编辑</span>
+                <span class="op danger">删除</span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="link" onclick="gotoHistory('SQL一致性-每周回归')">SQL一致性-每周回归</span></td>
+              <td>每周一 08:00 <span class="cron" title="0 0 8 ? * MON"><svg class="ic" style="width:14px;height:14px;vertical-align:-2px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg></span></td>
+              <td><span class="toggle on" onclick="toggleStatus(this,'r2')"></span></td>
+              <td>09-14 08:00 · <span class="tag fail">2/4</span></td>
+              <td id="next-r2">09-21 08:00</td>
+              <td>claude-sonnet-4-6</td><td>张三</td>
+              <td>
+                <span class="op">立即执行</span>
+                <span class="op" onclick="gotoHistory('SQL一致性-每周回归')">执行历史</span>
+                <span class="op" onclick="openEditModal('r2')">编辑</span>
+                <span class="op danger">删除</span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="link" onclick="gotoHistory('意图识别-每小时')">意图识别-每小时</span></td>
+              <td>每小时 <span class="cron" title="0 0 * * * ?"><svg class="ic" style="width:14px;height:14px;vertical-align:-2px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg></span></td>
+              <td><span class="toggle" onclick="toggleStatus(this,'r3')"></span></td>
+              <td>09-15 13:00 · <span class="tag done">5/5</span></td>
+              <td id="next-r3" class="muted">—</td>
+              <td>deepseek-flash</td><td>张三</td>
+              <td>
+                <span class="op">立即执行</span>
+                <span class="op" onclick="gotoHistory('意图识别-每小时')">执行历史</span>
+                <span class="op" onclick="openEditModal('r3')">编辑</span>
+                <span class="op danger">删除</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pager">
+          <span class="total-count">共 3 条</span>
+          <span class="pg">‹</span><span class="pg active">1</span><span class="pg">›</span>
+          <span class="pg">20 条/页 ▾</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 执行历史页 ============ -->
+    <section id="historyPage" class="hidden">
+      <div class="edit-head">
+        <div class="back" onclick="backToPeriodic()">‹ 返回</div>
+        <div class="etitle" id="hTitle">执行历史</div>
+      </div>
+      
+
+      <div class="card">
+        <div class="toolbar">
+          <select class="ctrl" style="width:140px"><option>全部状态</option><option>成功</option><option>失败</option><option>进行中</option></select>
+          <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11a8 8 0 1 0-1 4M20 5v6h-6"></path></svg> 刷新</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>任务名称</th><th>触发时间</th><th>阶段</th><th>结果</th><th>分数</th><th>耗时</th><th>状态</th><th>操作</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="hName">—</td><td>2026-09-16 02:00</td><td><span class="tag done">已完成</span></td><td>3/3</td><td>0.912</td><td>1m 12s</td><td><span class="tag on">成功</span></td><td><span class="op">查看详情</span></td></tr>
+            <tr><td class="hName">—</td><td>2026-09-15 02:00</td><td><span class="tag done">已完成</span></td><td>3/3</td><td>0.905</td><td>1m 08s</td><td><span class="tag on">成功</span></td><td><span class="op">查看详情</span></td></tr>
+            <tr><td class="hName">—</td><td>2026-09-14 02:00</td><td><span class="tag wait">待人工审</span></td><td>2/3</td><td>0.640</td><td>1m 30s</td><td><span class="tag fail">失败</span></td><td><span class="op">查看详情</span></td></tr>
+            <tr><td class="hName">—</td><td>2026-09-13 02:00</td><td><span class="tag run">进行中</span></td><td>0/3</td><td>—</td><td>—</td><td><span class="tag run">进行中</span></td><td><span class="op">查看详情</span></td></tr>
+          </tbody>
+        </table>
+        <div class="pager">
+          <span class="total-count">共 12 条</span>
+          <span class="pg">‹</span><span class="pg active">1</span><span class="pg">2</span><span class="pg">›</span>
+          <span class="pg">20 条/页 ▾</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ 添加到评测集 弹窗 ============ -->
+<div class="mask hidden" id="addSetModal">
+  <div class="modal">
+    <div class="modal-h"><span>添加到评测集</span><span class="x" onclick="closeAddSet()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 6l12 12M18 6L6 18"></path></svg></span></div>
+    <div class="modal-b">
+      <div id="addSetForm">
+        <div class="info-banner">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+          <span>已选 <b id="addSetCount" style="margin:0 2px">1</b> 项对话消息，将作为评测样本加入评测集，多个问题将拆分为多个单轮对话评测。</span>
+        </div>
+
+        <div class="field">
+          <label><span class="req">*</span> 评测集</label>
+          <div class="opt-group opt-row" id="setGroup">
+            <div class="opt sel" onclick="pickSet(this,'exist')"><span class="radio"></span><span class="otxt">选择已有评测集</span></div>
+            <div class="opt" onclick="pickSet(this,'new')"><span class="radio"></span><span class="otxt">新建评测集</span></div>
+          </div>
+          <div class="osub" id="setExistSub" style="margin-top:10px"><select class="ctrl"><option>答案一致性数据集</option><option>SQL一致性数据集</option><option>意图识别数据集</option></select></div>
+        </div>
+
+        <div class="field">
+          <label><span class="req">*</span> 上下文范围</label>
+          <div class="opt-group" id="ctxGroup">
+            <div class="opt sel" onclick="pickOne(this,'ctxGroup')"><span class="radio"></span><span class="otxt">仅本轮问答</span></div>
+            <div class="opt" onclick="pickOne(this,'ctxGroup')"><span class="radio"></span><span class="otxt">含前 <input type="number" class="inline-num" value="3" min="1" onclick="event.stopPropagation()"> 轮上下文</span></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label><span class="req">*</span> 期望答案</label>
+          <div class="opt-group" id="ansGroup">
+            <div class="opt sel" onclick="pickOne(this,'ansGroup')"><span class="radio"></span><span class="otxt">用本次回答作为标杆（Golden）</span></div>
+            <div class="opt" onclick="pickOne(this,'ansGroup')"><span class="radio"></span><span class="otxt">留空/待补充</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 提炼中视图 -->
+      <div id="refineView" class="hidden">
+        <div class="field">
+          <label>额外要求（可选）</label>
+          <textarea class="ctrl" id="refineExtra" style="height:64px" placeholder="可选：对提炼过程的额外要求，如侧重数据准确性、要点数量等。留空则使用默认提炼策略"></textarea>
+        </div>
+        <div class="refine-loading">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="rf-main">提炼中，约需 3-5 分钟，请勿关闭此弹窗</div>
+          <div class="rf-sub">AI 正在分析您选择的会话，提炼完成后结果将自动展示</div>
+          <div class="rf-link">实时查看提炼进展 →</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-f" id="addSetFooter">
+      <button class="btn" onclick="closeAddSet()">取消</button>
+      <button class="btn primary" onclick="confirmAddSet()">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 发起评测 / 新建定时评测 弹窗 ============ -->
+<div class="mask hidden" id="modal">
+  <div class="modal">
+    <div class="modal-h"><span id="modalTitle">发起评测</span><span class="x" onclick="closeModal()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 6l12 12M18 6L6 18"></path></svg></span></div>
+    <div class="modal-b">
+      <!-- 提示 -->
+      <div class="info-banner">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        任务将以当前用户身份提交到评测平台，自动标记本空间。
+      </div>
+      <div class="field"><label><span class="req">*</span> 评测集</label>
+        <select class="ctrl" id="fDataset"><option value="" disabled="" selected="">选择本空间的评测集</option><option>答案一致性数据集</option><option>SQL一致性数据集</option><option>意图识别数据集</option></select></div>
+      <div class="field"><label><span class="req">*</span> 样本</label>
+        <select class="ctrl" id="fSample"><option value="" disabled="" selected="">请先选择评测集</option><option>全部样本</option></select></div>
+      <div class="field"><label>任务名称（可选）</label><input class="ctrl" id="fName" placeholder="不填时自动生成"></div>
+      <div class="field"><label>描述（可选）</label><textarea class="ctrl" id="fDesc" placeholder=""></textarea></div>
+
+      <!-- 调度设置：仅定时评测显示 -->
+      <div id="scheduleBox">
+        <div class="section-title">调度设置</div>
+        <div class="field">
+          <label><span class="req">*</span> 执行频率</label>
+          <select class="ctrl" id="freq" onchange="onFreqChange()">
+            <option value="HOURLY">每小时</option>
+            <option value="DAILY" selected="">每天</option>
+            <option value="WEEKLY">每周</option>
+            <option value="MONTHLY">每月</option>
+            <option value="CUSTOM">自定义 (cron)</option>
+          </select>
+        </div>
+
+        <div class="field row" id="weekRow" style="display:none">
+          <div><label>星期</label>
+            <select class="ctrl" id="weekDay" onchange="buildCron()">
+              <option value="MON">周一</option><option value="TUE">周二</option><option value="WED">周三</option>
+              <option value="THU">周四</option><option value="FRI">周五</option><option value="SAT">周六</option><option value="SUN">周日</option>
+            </select></div>
+        </div>
+        <div class="field row" id="monthRow" style="display:none">
+          <div><label>日期</label>
+            <select class="ctrl" id="monthDay" onchange="buildCron()">
+              <option>1</option><option>5</option><option>10</option><option>15</option><option>28</option>
+            </select></div>
+        </div>
+        <div class="field" id="timeRow">
+          <label>执行时间</label>
+          <input type="time" class="ctrl" id="timeVal" value="02:00" onchange="buildCron()">
+        </div>
+        <div class="field" id="cronRow" style="display:none">
+          <label><span class="req">*</span> Cron 表达式</label>
+          <input class="ctrl" id="cronInput" placeholder="0 0 2 * * ?" oninput="translateCron()">
+          <div class="hint">格式：秒 分 时 日 月 周</div>
+        </div>
+
+        <div class="cron-preview" id="cronPreview">调度：每天 02:00 &nbsp;·&nbsp; cron: 0 0 2 * * ?</div>
+
+        <div class="field row" style="margin-top:16px">
+          <div><label>生效开始</label><input type="date" class="ctrl" id="fStart" value="2026-09-16"></div>
+          <div><label>生效结束（可空=长期）</label><input type="date" class="ctrl" id="fEnd"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn primary" onclick="closeModal()">发起</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showModule(m){
+    const chat = m==='chat';
+    document.getElementById('chatModule').classList.toggle('hidden', !chat);
+    document.getElementById('statModule').classList.toggle('hidden', chat);
+    document.getElementById('navChat').classList.toggle('active', chat);
+    document.getElementById('navStat').classList.toggle('active', !chat);
+  }
+
+  /* ===== 添加到评测集：勾选模式 ===== */
+  function enterSelect(){
+    document.getElementById('normalActions').classList.add('hidden');
+    document.getElementById('selActions').classList.remove('hidden');
+    document.querySelector('.cm-body').classList.add('selecting');
+    document.querySelectorAll('.cm-body .msg-check').forEach(c=>{ c.classList.remove('hidden','on'); });
+    // 默认选中第一条，匹配「已选 1 项」
+    const first = document.querySelector('.cm-body .msg-check');
+    if(first) first.classList.add('on');
+    updateSelCount();
+  }
+  function exitSelect(){
+    document.getElementById('selActions').classList.add('hidden');
+    document.getElementById('normalActions').classList.remove('hidden');
+    document.querySelector('.cm-body').classList.remove('selecting');
+    document.querySelectorAll('.cm-body .msg-check').forEach(c=>{ c.classList.add('hidden'); c.classList.remove('on'); });
+  }
+  function toggleMsgCheck(el){ el.classList.toggle('on'); updateSelCount(); }
+  function updateSelCount(){
+    const n = document.querySelectorAll('.cm-body .msg-check.on').length;
+    document.getElementById('selCount').textContent = n;
+  }
+  function addSelected(){
+    const n = document.querySelectorAll('.cm-body .msg-check.on').length;
+    if(n===0){ return; }
+    document.getElementById('addSetCount').textContent = n;
+    document.getElementById('addSetModal').classList.remove('hidden');
+  }
+
+  /* ===== 添加到评测集 弹窗 ===== */
+  function pickOne(el, groupId){
+    document.querySelectorAll('#'+groupId+' .opt').forEach(o=>o.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+  function pickSet(el, kind){
+    document.querySelectorAll('#setGroup .opt').forEach(o=>o.classList.remove('sel'));
+    el.classList.add('sel');
+    document.getElementById('setExistSub').classList.toggle('hidden', kind!=='exist');
+    document.getElementById('setNewSub').classList.toggle('hidden', kind!=='new');
+  }
+  function toggleSelectAll(el){
+    const on = el.classList.toggle('on');
+    document.querySelectorAll('.cs-tree .chk, .ses-row .chk').forEach(c=>c.classList.toggle('on', on));
+  }
+  function openAddSetModal(count){
+    document.getElementById('addSetCount').textContent = count || 1;
+    // 确保为表单视图（非提炼中）
+    document.getElementById('addSetForm').classList.remove('hidden');
+    document.getElementById('refineView').classList.add('hidden');
+    document.getElementById('addSetFooter').classList.remove('hidden');
+    document.getElementById('addSetModal').classList.remove('hidden');
+  }
+  // 评价明细：勾选后方可批量添加
+  function toggleEvalCheck(el){ el.classList.toggle('on'); updateEvalAddBtn(); }
+  function updateEvalAddBtn(){
+    const n = document.querySelectorAll('#evalPage tbody .chk.on').length;
+    const btn = document.getElementById('evalAddBtn');
+    if(btn) btn.classList.toggle('disabled', n===0);
+  }
+  function evalAddToSet(){
+    const n = document.querySelectorAll('#evalPage tbody .chk.on').length;
+    if(n===0) return;
+    openAddSetModal(n);
+  }
+
+  function closeAddSet(){
+    document.getElementById('addSetModal').classList.add('hidden');
+    if(refineTimer){ clearTimeout(refineTimer); refineTimer=null; }
+    // 恢复为表单视图，隐藏提炼视图
+    document.getElementById('addSetForm').classList.remove('hidden');
+    document.getElementById('refineView').classList.add('hidden');
+    document.getElementById('addSetFooter').classList.remove('hidden');
+  }
+
+  // 对话中被选中的题目 & 本次回答（作为标杆时提炼）
+  const CHAT_QUESTION = '关于数据分析的skill有哪些';
+  const GOLDEN_ANSWER = '当前空间与数据分析相关的 skills 共 7 个（数据查询与检索类）：search-data-tables、data-explorer、data-query、domain-knowledge、vega-data-search、vega_dashboards_insight、search-lago-data；分别用于语义表检索、全量数据源探索、SQL 执行、业务术语解析、Vega 图表/看板查询与洞察、Data-Lago 报告检索。';
+  let NEW_SAMPLE = null;
+  let refineTimer = null;
+
+  function confirmAddSet(){
+    const ansSel = document.querySelector('#ansGroup .opt.sel .otxt');
+    const useGolden = ansSel && ansSel.textContent.indexOf('标杆') > -1;
+    if(useGolden){
+      // 进入提炼中视图：隐藏表单与底部按钮，展示 loading
+      document.getElementById('addSetForm').classList.add('hidden');
+      document.getElementById('refineView').classList.remove('hidden');
+      document.getElementById('addSetFooter').classList.add('hidden');
+      // 提炼完成后自动跳转（原型用短时模拟 3-5 分钟）
+      refineTimer = setTimeout(function(){ refineTimer=null; finishRefine(GOLDEN_ANSWER); }, 2600);
+    } else {
+      NEW_SAMPLE = { q:CHAT_QUESTION, ds:'', sql:'', isNew:true };
+      closeAddSet();
+      exitSelect();
+      goToEdit();
+    }
+  }
+  function finishRefine(answer){
+    NEW_SAMPLE = { q:CHAT_QUESTION, ds:'', sql:answer, isNew:true };
+    closeAddSet();
+    exitSelect();
+    goToEdit();
+  }
+  function goToEdit(){
+    showModule('stat');
+    openEditSet(true);   // 保留对话新增样本
+    expandFirstSample();
+  }
+
+  function showPage(page){
+    // 隐藏所有页面
+    ['setPage','editPage','listPage','periodicPage','historyPage','evalPage'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.classList.add('hidden');
+    });
+    // 清除菜单激活态
+    ['menuSet','menuOnce','menuPeriodic','menuEval'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.classList.remove('active');
+    });
+    const map={ set:['setPage','menuSet'], once:['listPage','menuOnce'], periodic:['periodicPage','menuPeriodic'], eval:['evalPage','menuEval'] };
+    const [pageId,menuId]=map[page]||map.set;
+    document.getElementById(pageId).classList.remove('hidden');
+    const menuEl=document.getElementById(menuId); if(menuEl) menuEl.classList.add('active');
+  }
+
+  function openModal(periodic){
+    document.getElementById('modalTitle').textContent = periodic ? '新建定时评测' : '发起评测';
+    document.getElementById('scheduleBox').style.display = periodic ? 'block' : 'none';
+    document.querySelector('#modal .modal-f .btn.primary').textContent = '发起';
+    document.getElementById('fDataset').selectedIndex = 0;
+    document.getElementById('fSample').selectedIndex = 0;
+    document.getElementById('fName').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('freq').value = 'DAILY';
+    document.getElementById('timeVal').value = '02:00';
+    document.getElementById('fStart').value = '2026-09-16';
+    document.getElementById('fEnd').value = '';
+    document.getElementById('modal').classList.remove('hidden');
+    if(periodic){ onFreqChange(); }
+  }
+  function closeModal(){ document.getElementById('modal').classList.add('hidden'); }
+
+  const ROW_DATA = {
+    r1:{ name:'答案一致性-每日巡检', dataset:'答案一致性数据集', sample:'全部样本', desc:'每日巡检答案一致性', freq:'DAILY', time:'02:00', start:'2026-09-16', end:'' },
+    r2:{ name:'SQL一致性-每周回归', dataset:'SQL一致性数据集', sample:'全部样本', desc:'每周一回归 SQL 一致性', freq:'WEEKLY', week:'MON', time:'08:00', start:'2026-09-16', end:'' },
+    r3:{ name:'意图识别-每小时', dataset:'意图识别数据集', sample:'全部样本', desc:'每小时意图识别评测', freq:'HOURLY', time:'02:00', start:'2026-09-16', end:'' }
+  };
+
+  function openEditModal(id){
+    const d = ROW_DATA[id] || {};
+    document.getElementById('modalTitle').textContent = '编辑定时评测';
+    document.getElementById('scheduleBox').style.display = 'block';
+    document.querySelector('#modal .modal-f .btn.primary').textContent = '保存';
+
+    document.getElementById('fDataset').value = d.dataset || '';
+    document.getElementById('fSample').value  = d.sample  || '';
+    document.getElementById('fName').value    = d.name    || '';
+    document.getElementById('fDesc').value    = d.desc    || '';
+    document.getElementById('freq').value     = d.freq    || 'DAILY';
+    if(d.week)  document.getElementById('weekDay').value  = d.week;
+    if(d.month) document.getElementById('monthDay').value = d.month;
+    document.getElementById('timeVal').value  = d.time    || '02:00';
+    document.getElementById('fStart').value   = d.start   || '';
+    document.getElementById('fEnd').value     = d.end     || '';
+
+    document.getElementById('modal').classList.remove('hidden');
+    onFreqChange();
+  }
+  document.getElementById('modal').addEventListener('click', function(e){ if(e.target === this) closeModal(); });
+  document.getElementById('addSetModal').addEventListener('click', function(e){ if(e.target === this) closeAddSet(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeModal(); closeAddSet(); } });
+
+  const NEXT_TIME={r1:'09-17 02:00', r2:'09-21 08:00', r3:'09-16 14:00'};
+  function toggleStatus(el, id){
+    const on = el.classList.toggle('on');
+    const cell = document.getElementById('next-'+id);
+    if(on){ cell.textContent = NEXT_TIME[id]; cell.classList.remove('muted'); }
+    else  { cell.textContent = '—'; cell.classList.add('muted'); }
+  }
+
+  const CN_WEEK={MON:'周一',TUE:'周二',WED:'周三',THU:'周四',FRI:'周五',SAT:'周六',SUN:'周日'};
+
+  function onFreqChange(){
+    const f = document.getElementById('freq').value;
+    document.getElementById('weekRow').style.display  = f==='WEEKLY' ? 'flex':'none';
+    document.getElementById('monthRow').style.display = f==='MONTHLY'? 'flex':'none';
+    document.getElementById('timeRow').style.display  = (f==='HOURLY'||f==='CUSTOM') ? 'none':'block';
+    document.getElementById('cronRow').style.display  = f==='CUSTOM' ? 'block':'none';
+    document.getElementById('cronPreview').style.display = f==='CUSTOM' ? 'none':'block';
+    buildCron();
+  }
+
+  function buildCron(){
+    const f = document.getElementById('freq').value;
+    const t = (document.getElementById('timeVal').value||'02:00').split(':');
+    const hh=parseInt(t[0]), mm=parseInt(t[1]);
+    let cron='', desc='';
+    if(f==='HOURLY'){ cron='0 0 * * * ?'; desc='每小时'; }
+    else if(f==='DAILY'){ cron=`0 ${mm} ${hh} * * ?`; desc=`每天 ${t[0]}:${t[1]}`; }
+    else if(f==='WEEKLY'){ const w=document.getElementById('weekDay').value; cron=`0 ${mm} ${hh} ? * ${w}`; desc=`每${CN_WEEK[w]} ${t[0]}:${t[1]}`; }
+    else if(f==='MONTHLY'){ const d=document.getElementById('monthDay').value; cron=`0 ${mm} ${hh} ${d} * ?`; desc=`每月${d}号 ${t[0]}:${t[1]}`; }
+    if(f!=='CUSTOM'){
+      document.getElementById('cronPreview').innerHTML = `调度：${desc} &nbsp;·&nbsp; cron: ${cron}`;
+    }
+  }
+
+  function translateCron(){
+    const v = document.getElementById('cronInput').value.trim();
+    document.getElementById('cronPreview').style.display='block';
+    document.getElementById('cronPreview').innerHTML = v ? `cron: ${v}` : '请输入 cron 表达式';
+  }
+
+  function gotoHistory(name){
+    document.getElementById('hTitle').textContent = name + ' · 执行历史';
+    document.querySelectorAll('#historyPage .hName').forEach(function(el){ el.textContent = name; });
+    document.getElementById('periodicPage').classList.add('hidden');
+    document.getElementById('listPage').classList.add('hidden');
+    document.getElementById('historyPage').classList.remove('hidden');
+  }
+  function backToPeriodic(){
+    document.getElementById('historyPage').classList.add('hidden');
+    document.getElementById('periodicPage').classList.remove('hidden');
+  }
+
+  /* ===== 评测集编辑页 ===== */
+  const SAMPLE_DS = '@/workspace/data/user/game_player_events.csv';
+  const SAMPLES = [
+    {q:'表里一共有多少用户？',ds:'@/workspace/data',sql:'SELECT COUNT(DISTINCT user_id) AS user_cnt FROM game_player_events;'},
+    {q:'一共有多少条行为事件记录？',ds:'@/workspace/d',sql:'SELECT COUNT(*) AS event_cnt FROM game_player_events;'},
+    {q:'统计最近1个月月活趋势，',ds:'@/workspace/da',sql:"SELECT DATE_FORMAT(event_time,'%Y-%m') AS mon, COUNT(DISTINCT user_id) AS mau\nFROM game_player_events\nWHERE event_time >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)\nGROUP BY mon ORDER BY mon;"},
+    {q:'最近7天新增用户趋势，',ds:'@/workspace/dat',sql:'SELECT DATE(register_time) AS dt, COUNT(DISTINCT user_id) AS new_users\nFROM game_player_events\nWHERE register_time >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)\nGROUP BY dt ORDER BY dt;'},
+    {q:'最近30天每天的登录事件量趋势，',ds:'@/workspac',sql:"SELECT DATE(event_time) AS dt, COUNT(*) AS login_cnt\nFROM game_player_events\nWHERE event_type='login' AND event_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)\nGROUP BY dt ORDER BY dt;"},
+    {q:'iOS用户有多少?',ds:'@/workspace/data/',sql:"SELECT COUNT(DISTINCT user_id) AS ios_users FROM game_player_events WHERE platform='iOS';"},
+    {q:'Android用户有多少？',ds:'@/workspace/data',sql:"SELECT COUNT(DISTINCT user_id) AS android_users FROM game_player_events WHERE platform='Android';"},
+    {q:'各渠道用户数分布，',ds:'@/workspace/data',sql:'SELECT channel, COUNT(DISTINCT user_id) AS user_cnt\nFROM game_player_events GROUP BY channel ORDER BY user_cnt DESC;'},
+    {q:'每日活跃用户数（DAU）趋势，',ds:'@/workspace/data',sql:'SELECT DATE(event_time) AS dt, COUNT(DISTINCT user_id) AS dau\nFROM game_player_events GROUP BY dt ORDER BY dt;'},
+    {q:'每周活跃用户数（WAU）趋势，',ds:'@/workspace/data',sql:'SELECT YEARWEEK(event_time) AS wk, COUNT(DISTINCT user_id) AS wau\nFROM game_player_events GROUP BY wk ORDER BY wk;'},
+    {q:'付费用户占比，',ds:'@/workspace/data',sql:'SELECT COUNT(DISTINCT CASE WHEN is_pay=1 THEN user_id END) / COUNT(DISTINCT user_id) AS pay_ratio\nFROM game_player_events;'},
+    {q:'人均付费金额（ARPU），',ds:'@/workspace/data',sql:'SELECT SUM(pay_amount) / COUNT(DISTINCT user_id) AS arpu FROM game_player_events;'},
+    {q:'付费用户人均付费（ARPPU），',ds:'@/workspace/data',sql:'SELECT SUM(pay_amount) / COUNT(DISTINCT CASE WHEN is_pay=1 THEN user_id END) AS arppu\nFROM game_player_events;'},
+    {q:'各等级用户数量分布，',ds:'@/workspace/data',sql:'SELECT level, COUNT(DISTINCT user_id) AS user_cnt\nFROM game_player_events GROUP BY level ORDER BY level;'},
+    {q:'用户平均等级，',ds:'@/workspace/data',sql:'SELECT AVG(max_level) AS avg_level FROM (\n  SELECT user_id, MAX(level) AS max_level FROM game_player_events GROUP BY user_id\n) t;'},
+    {q:'最近7天流失用户数，',ds:'@/workspace/data',sql:'SELECT COUNT(DISTINCT user_id) AS churn_users\nFROM game_player_events\nWHERE user_id NOT IN (\n  SELECT DISTINCT user_id FROM game_player_events\n  WHERE event_time >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)\n);'},
+    {q:'新用户7日留存率，',ds:'@/workspace/data',sql:'SELECT COUNT(DISTINCT b.user_id) / COUNT(DISTINCT a.user_id) AS retention_7d\nFROM game_player_events a\nLEFT JOIN game_player_events b\n  ON a.user_id = b.user_id AND DATEDIFF(b.event_time, a.register_time) = 7;'},
+    {q:'各时段登录活跃分布，',ds:'@/workspace/data',sql:"SELECT HOUR(event_time) AS hr, COUNT(DISTINCT user_id) AS active_users\nFROM game_player_events WHERE event_type='login'\nGROUP BY hr ORDER BY hr;"},
+    {q:'单日最高在线用户数，',ds:'@/workspace/data',sql:'SELECT DATE(event_time) AS dt, COUNT(DISTINCT user_id) AS online\nFROM game_player_events GROUP BY dt ORDER BY online DESC LIMIT 1;'},
+    {q:'用户平均在线时长，',ds:'@/workspace/data',sql:'SELECT AVG(online_duration) AS avg_duration FROM game_player_events;'},
+    {q:'各服务器用户数分布，',ds:'@/workspace/data',sql:'SELECT server_id, COUNT(DISTINCT user_id) AS user_cnt\nFROM game_player_events GROUP BY server_id ORDER BY user_cnt DESC;'},
+    {q:'每日新增付费用户数，',ds:'@/workspace/data',sql:'SELECT DATE(event_time) AS dt, COUNT(DISTINCT CASE WHEN is_pay=1 THEN user_id END) AS new_pay_users\nFROM game_player_events GROUP BY dt ORDER BY dt;'},
+    {q:'活跃用户按地区分布，',ds:'@/workspace/data',sql:'SELECT region, COUNT(DISTINCT user_id) AS user_cnt\nFROM game_player_events GROUP BY region ORDER BY user_cnt DESC;'},
+    {q:'每月的事件量和月活跃用户数，',ds:'@/workspace/',sql:"SELECT DATE_FORMAT(event_time,'%Y-%m') AS mon, COUNT(*) AS event_cnt, COUNT(DISTINCT user_id) AS mau\nFROM game_player_events GROUP BY mon ORDER BY mon;"},
+    {q:'登录用户次日留存率，',ds:'@/workspace/data',sql:'SELECT COUNT(DISTINCT b.user_id) / COUNT(DISTINCT a.user_id) AS next_day_retention\nFROM game_player_events a\nLEFT JOIN game_player_events b\n  ON a.user_id = b.user_id AND DATEDIFF(b.event_time, a.event_time) = 1;'},
+    {q:'新用户次日留存率（注册后第1天），',ds:'@/workspa',sql:'SELECT COUNT(DISTINCT b.user_id) / COUNT(DISTINCT a.user_id) AS new_user_next_day\nFROM game_player_events a\nLEFT JOIN game_player_events b\n  ON a.user_id = b.user_id AND DATEDIFF(b.event_time, a.register_time) = 1;'},
+    {q:'对局开始到对局结束的转化率（按场次漏斗），',ds:'@/wor',sql:"SELECT COUNT(DISTINCT CASE WHEN event_type='match_end' THEN user_id END)\n     / COUNT(DISTINCT CASE WHEN event_type='match_start' THEN user_id END) AS conv_rate\nFROM game_player_events;"},
+    {q:'按等级段统计用户数分布 (1-20/21-40/41-60/6',ds:'',sql:"SELECT CASE\n  WHEN level BETWEEN 1 AND 20 THEN '1-20'\n  WHEN level BETWEEN 21 AND 40 THEN '21-40'\n  WHEN level BETWEEN 41 AND 60 THEN '41-60'\n  ELSE '60+' END AS lvl_seg,\n  COUNT(DISTINCT user_id) AS user_cnt\nFROM game_player_events GROUP BY lvl_seg;"},
+    {q:'用户平均每日在线场次，',ds:'@/workspace/dat',sql:"SELECT AVG(session_cnt) AS avg_sessions FROM (\n  SELECT user_id, DATE(event_time) AS dt, COUNT(*) AS session_cnt\n  FROM game_player_events WHERE event_type='match_start'\n  GROUP BY user_id, dt\n) t;"},
+    {q:'用户数最多的TOP 10公会，',ds:'@/workspace',sql:'SELECT guild_id, COUNT(DISTINCT user_id) AS user_cnt\nFROM game_player_events GROUP BY guild_id ORDER BY user_cnt DESC LIMIT 10;'}
+  ];
+  function renderSamples(){
+    const box = document.getElementById('sampleList');
+    if(!box) return;
+    const list = NEW_SAMPLE ? [NEW_SAMPLE].concat(SAMPLES) : SAMPLES;
+    box.innerHTML = list.map((s,i)=>{
+      const dsTag = s.ds ? `<span class="ds">数据源：${s.ds}</span>` : '';
+      const content = s.ds ? `${s.q} 数据源：${SAMPLE_DS}` : s.q;
+      const badge = s.isNew ? '<span class="new-badge">新</span>' : '';
+      const itemCls = s.isNew ? 'sample-item is-new' : 'sample-item';
+      return `<div class="${itemCls}">
+        <div class="sample-row" onclick="toggleSample(this)">
+          <span class="arrow"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6"></path></svg></span>
+          <span class="chk" onclick="event.stopPropagation();this.classList.toggle('on')"></span>
+          <span class="idx">${i+1}</span>
+          <span class="stext">${s.q} ${dsTag}${badge}</span>
+          <span class="del" onclick="event.stopPropagation()"><svg class="ic" style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg></span>
+        </div>
+        <div class="sample-detail hidden">
+          <div class="sd-fld"><input class="ctrl" placeholder="样本标题（选填）"></div>
+          <div class="sd-fld"><textarea class="ctrl sd-ta" placeholder="用户输入（必填）">${content}</textarea></div>
+          <div class="sd-fld"><textarea class="ctrl sd-ta" placeholder="期望输出（选填）">${s.sql}</textarea></div>
+        </div>
+      </div>`;
+    }).join('');
+    const cnt=document.getElementById('sampleCount'); if(cnt) cnt.textContent = list.length;
+  }
+  function toggleSample(row){
+    const item = row.closest('.sample-item');
+    const open = item.classList.toggle('open');
+    item.querySelector('.sample-detail').classList.toggle('hidden', !open);
+  }
+  function toggleSampleAll(el){
+    const on = el.classList.toggle('on');
+    document.querySelectorAll('#sampleList .chk').forEach(c=>c.classList.toggle('on', on));
+  }
+  function openEditSet(keepNew){
+    if(!keepNew) NEW_SAMPLE = null;
+    ['setPage','evalPage','listPage','periodicPage','historyPage'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('hidden');});
+    document.getElementById('editPage').classList.remove('hidden');
+    ['menuSet','menuOnce','menuPeriodic','menuEval'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('active');});
+    const ms=document.getElementById('menuSet'); if(ms) ms.classList.add('active');
+    renderSamples();
+    const sa = document.getElementById('setSelAll'); if(sa) sa.classList.remove('on');
+    const c=document.querySelector('.content'); if(c) c.scrollTop = 0;
+  }
+  function expandFirstSample(){
+    const first = document.querySelector('#sampleList .sample-item');
+    if(first){ first.classList.add('open'); first.querySelector('.sample-detail').classList.remove('hidden'); }
+  }
+  function backToSet(){
+    document.getElementById('editPage').classList.add('hidden');
+    document.getElementById('setPage').classList.remove('hidden');
+  }
+
+  /* ===== 红点一键隐藏 / 显示 ===== */
+  function toggleFeats(){
+    const hidden = document.body.classList.toggle('hide-feats');
+    const txt = document.getElementById('featEyeTxt');
+    const eye = document.getElementById('featEye');
+    if(txt) txt.textContent = hidden ? '显示红点' : '隐藏红点';
+    if(eye) eye.title = hidden ? '显示新功能红点' : '隐藏新功能红点';
+  }
+</script>
+
+
+</body></html>
