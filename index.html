@@ -273,6 +273,14 @@
   .esec-h .eh-title{font-weight:700;font-size:15px}
   .esec-h .eh-sub{color:var(--text-3);font-size:12px}
   .esec-h .eh-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .history-pick-entry{position:relative;display:inline-flex;align-items:center;height:36px;color:var(--text-3);font-size:14px;font-weight:400;padding:0 4px;border-radius:6px;white-space:nowrap}
+  .history-pick-link{color:var(--primary);cursor:pointer;margin:0 1px}
+  .history-pick-link:hover{text-decoration:underline}
+  .history-pick-entry .history-tip{position:absolute;right:0;top:42px;width:560px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.18);padding:8px;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s,transform .15s;z-index:40}
+  .history-pick-entry .history-tip::before{content:"";position:absolute;top:-7px;right:42px;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:7px solid #fff;filter:drop-shadow(0 -1px 0 var(--border))}
+  .history-pick-entry:hover .history-tip{opacity:1;transform:translateY(0)}
+  .history-tip img{display:block;width:100%;height:auto;border-radius:8px}
+  .history-tip .cap{font-size:12px;color:var(--text-2);line-height:1.5;margin-top:7px;text-align:left}
   .efield{margin-bottom:18px}
   .efield:last-child{margin-bottom:0}
   .efield label{display:block;margin-bottom:8px;font-weight:600;font-size:13px}
@@ -635,7 +643,7 @@
       <div class="mi parent"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3M8 3h8M7 15h10"></path></svg> 评测 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 15l6-6 6 6"></path></svg></div>
       <div class="sub">
         <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"></path></svg> skill评测</div>
-        <div class="mi active" id="menuSet" onclick="showPage('set')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg> 评测集</div>
+        <div class="mi active" id="menuSet" onclick="showPage('set')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg> 评测集<span class="feat-badge">1</span></div>
         <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg> 评估器</div>
         <div class="mi" id="menuOnce" onclick="showPage('once')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3M8 3h8M7 15h10"></path></svg> 评测任务</div>
         <div class="mi" id="menuPeriodic" onclick="showPage('periodic')" style="position:relative"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg> 定时评测<span class="feat-badge">3</span></div>
@@ -803,7 +811,7 @@
               <td>2026-09-09 18:08:51</td>
               <td>
                 <span class="op">详情</span>
-                <span class="op" onclick="openEditSet()">编辑</span>
+                <span class="op" onclick="openEditSet()">编辑<span class="feat-badge">1</span></span>
                 <span class="op">去评测</span>
                 <span class="op danger">删除</span>
               </td>
@@ -861,6 +869,13 @@
         <div class="esec-h">
           <span class="step-badge">2</span><span class="eh-title">问题与期望回答</span><span class="eh-sub">共 <span id="sampleCount">30</span> 个样本 · 用户输入必填</span>
           <div class="eh-right">
+            <span class="history-pick-entry">
+              从历史对话中<span class="history-pick-link" onclick="goPickFromHistory()">选择<span class="feat-badge">1</span></span>
+              <span class="history-tip">
+                <img src="https://brainmaker.s3v2.nie.netease.com/brainmaker/prod/1791450180665-image.png" alt="在对话中点击添加到评测集入口">
+                <span class="cap">提示：点击选择跳转到对话页，可通过右上角「添加到评测集」入口勾选对话并生成样本。</span>
+              </span>
+            </span>
             <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 15V3M8 7l4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg> 批量导入</button>
             <button class="btn primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"></path></svg> 添加样本</button>
           </div>
@@ -1305,6 +1320,10 @@
     showModule('stat');
     openEditSet(true);   // 保留对话新增样本
     expandFirstSample();
+  }
+  function goPickFromHistory(){
+    showModule('chat');
+    setTimeout(function(){ enterSelect(); }, 0);
   }
 
   function showPage(page){
